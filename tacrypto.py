@@ -484,26 +484,26 @@ class talibCrypto(object):
     """
     Cycle Indicators
     """
-    # Hilbert Transform - Dominant Cycle Period
+    # 59. Hilbert Transform - Dominant Cycle Period
     def ht_dcperiod(self):
         ht_dcperiod = talib.HT_DCPERIOD(self.df['close'])
         real.name = 'HT_DCPERIOD'
         return real
     
-    # Hilbert Transform - Dominant Cycle Phase
+    # 60. Hilbert Transform - Dominant Cycle Phase
     def ht_dcphase(self):
         real = talib.HT_DCPHASE(self.df['close'])
         real.name = 'HT_DCPHASE'
         return real
 
-    # Hilbert Transform - Phasor Components
+    # 61. Hilbert Transform - Phasor Components
     def ht_phasor(self):
         inphase, quadrature = talib.HT_PHASOR(self.df['close'])
         real = inphase + quadrature
         real.name = 'HT_PHASOR'
         return real
 
-    # Hilbert Transform - SineWave
+    # 62. Hilbert Transform - SineWave
     def ht_sine(self):
         sine, leadsine = talib.HT_SINE(self.df['close'])
         real = sine
