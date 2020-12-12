@@ -331,41 +331,176 @@ class talibCrypto(object):
     
     # 39. Percentage Price Oscillator
     def ppo(self):
+        real = talib.PPO(self.df['close'], fastperiod=2, slowperiod=3, matype=4)
+        real.name = 'PPO'
+        return real
+    
+    # 40. Rate of change : ((price/prevPrice)-1)*100
+    def roc(self):
+        real = talib.ROC(self.df['close'], timeperiod=2)
+        real.name = 'ROC'
+        return real
+    
+    # 41. Relative Strength Index
+    def rsi(self):
+        real = talib.RSI(self.df['close'], timeperiod=2)
+        real.name = 'RSI'
+        return real
+    
+    # 42. Long Short term Relative Strength Index [self-developed]
+    def ls_rsi(self):
+        rsi1 = talib.RSI(self.df['close'], timeperiod=2)
+        rsi2 = talib.RSI(self.df['close'], timeperiod=3)
+        real = rsi1 - rsi2
+        real.name = 'LS_RSI'
+        return real
+    # 43. Over bought & Sold Relative Strength Index compromised with Volume [self-developed]
+    def obs_rsiv(self):
+        rsi = talib.RSI(self.df['close'], timeperiod=2)
+
+        def submap(x):
+            if x < 10:
+                return 1 - x / 30
+            elif x > 90:
+                return 1 - x / 70
+            else:
+                return 1 - x / 50
+
+        real = rsi.apply(submap) * self.df['volume']
+        real.name = 'OBS_RSIV'
+        return real
+    
+    # 44. Stochastic
+    def stoch(self):
+        slowk, slowd = talib.STOCH(
+            self.df['high'], self.df['low'], self.df['close'], 
+            fastk_period=3, slowk_period=2, slowd_period=2, slowk_matype=3,  slowd_matype=2
+        )
+        real = slowk - slowd
+        real.name = 'STOCH'
+        return real
+
+    # 45. Stochastic Fast
+    def stochf(self):
+        fastk, fastd = talib.STOCHF(
+            self.df['high'], self.df['low'], self.df['close'], 
+            fastk_period=5, fastd_period=2, fastd_matype=0
+        )
+        real = fastk - fastd
+        real.name = 'STOCHF'
+        return real
+    
+    # 46. Stochastic Relative Strength Index
+    def stochrsi(self):
+        fastk, fastd = talib.STOCHRSI(self.df['close'], timeperiod=12, fastk_period=60, fastd_period=2, fastd_matype=0)
+        real = fastk - fastd
+        real.name = 'STOCHRSI'
+        return real
+    
+    # 47. 1-day Rate-Of-Change (ROC) of a Triple Smooth EMA
+    def trix(self):
+        real = talib.TRIX(self.df['close'], timeperiod=5)
+        real.name = 'TRIX'
+        return real
+    
+    # 48. Ultimate Oscillator
+    def ultosc(self):
+        real = talib.ULTOSC(self.df['high'], self.df['low'], self.df['close'], timeperiod1=2, timeperiod2=6, timeperiod3=10)
+        real.name = 'ULTOSC'
+        return real
+
+    # 49. Williams' %R
+    def willr(self):
+        real = talib.WILLR(self.df['high'], self.df['low'], self.df['close'], timeperiod=2)
+        real.name = 'WILLR'
+        return real
+
+    # 50. Long Short term Williams' %R  [self-developed]
+    def ls_willr(self):
+        willr1 = talib.WILLR(self.df['high'], self.df['low'], self.df['close'], timeperiod=2)
+        willr2 = talib.WILLR(self.df['high'], self.df['low'], self.df['close'], timeperiod=9)
+        real = willr1 - willr2
+        real.name = 'LS_WILLR'
+        return real
+    
+    """
+    Volume Indicator Functions
+    """
+    # 51. Chaikin A/D Line
+    def ad(self):
+        real = talib.AD(self.df['high'], self.df['low'], self.df['close'], self.df['volume'])
+        real.name = 'AD'
+        return real
+    
+    # 52. ADOSC - Chaikin A/D Oscillator
+    def adosc(self):
+        real = talib.ADOSC(self.df['high'], self.df['low'], self.df['close'], self.df['volume'], fastperiod=2, slowperiod=3)
+        real.name = 'ADOSC'
+        return real
+    
+    # 53. On Balance Volume
+    def obv(self):
+        real = talib.OBV(self.df['close'], self.df['volume'])
+        real.name = 'OBV'
+        return real
+    
+    """
+    Volatility Indicator Functions
+    """
+    # 54. Average True Range
+    def atr(self):
+        real = talib.ATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=5)
+        real.name = 'ATR'
+        return real
+
+    # 55. Long Short Term ATR [self-developed]
+    def ls_atr(self):
+        atr1 = talib.ATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=3)
+        atr2 = talib.ATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=9)
+        real = atr1 - atr2
+        real.name = 'LS_ATR'
+        return real
+    
+    # 56. Normalized Average True Range
+    def natr(self):
+        real = talib.NATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=3)
+        real.name = 'NATR'
+        return real
+    
+    # 57. Long Short Term NATR [self-developed]
+    def ls_natr(self):
+        natr1 = talib.NATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=4)
+        natr2 = talib.NATR(self.df['high'], self.df['low'], self.df['close'], timeperiod=8)
+        real = natr1 - natr2
+        real.name = 'LS_NATR'
+        return real
+    
+    # 58. True Range
+    def trange(self):
+        real = talib.TRANGE(self.df['high'], self.df['low'], self.df['close'])
+        real.name = 'TRANGE'
+        return real
+
+    """
+    Cycle Indicators
+    """
+    # Hilbert Transform - Dominant Cycle Period
+    def ht_dcperiod(self):
         pass
-        
     
+    # Hilbert Transform - Dominant Cycle Phase
+    def ht_dcphase(self):
+        pass
 
+    # Hilbert Transform - Phasor Components
+    def ht_phasor(self):
+        pass
+
+    # Hilbert Transform - SineWave
+    def ht_sine(self):
+        pass
     
-
-        
-
-
-        
-    
-
-        
-
-    
-     
-    
-
-
-    
-    
-
-
-    
-    
-
-
-    
-
-    
-
-
-    
-
-
-    
-
+    # Hilbert Transform - Trend vs Cycle Mode
+    def trendmode(self):
+        pass
 
