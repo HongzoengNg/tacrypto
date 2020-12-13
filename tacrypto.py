@@ -19,7 +19,14 @@ class talibCrypto(object):
         self.talib_function = [
             self.bband, self.dema, self.ema, self.kama, self.ma, self.mama, self.midpoint,
             self.midprice, self.sar, self.sma, self.t3, self.tema, self.trima, self.wma,
-            self.plusdi, self.minusdi, self.pmdi, self.adx, self.adx_pct, self.pmdi_aadx
+            self.plusdi, self.minusdi, self.pmdi, self.adx, self.adx_pct, self.pmdi_aadx,
+            self.axdr, self.apo, self.aroonosc, self.ls_aroonosc, self.bop, self.cci,
+            self.ls_cci, self.cmo, self.ls_cmo, self.dx, self.macd, self.macd_ext,
+            self.macd_fix, self.mfi, self.ls_mfi, self.obs_mfi, self.mom, self.ls_mom,
+            self.ppo, self.roc, self.rsi, self.ls_rsi, self.obs_rsiv, self.stoch,
+            self.stochf, self.stochrsi, self.trix, self.ultosc, self.willr, self.ls_willr,
+            self.ad, self.adosc, self.obv, self.atr, self.ls_atr, self.natr, self.ls_natr,
+            self.trange, self.ht_dcperiod, self.ht_dcphase, self.ht_phasor, self.ht_sine
         ]
 
     
