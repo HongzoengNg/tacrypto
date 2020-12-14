@@ -11,22 +11,62 @@ import talib
 import numpy as np
 import pandas as pd
 
+import threading
+
 
 class talibCrypto(object):
     def __init__(self, minute_datalibframe):
         self.df_cols = ['open', 'high', 'low', 'close', 'volume', 'time', 'avg_price']
         self.df = minute_datalibframe
         self.talib_function = [
-            self.bband, self.dema, self.ema, self.kama, self.ma, self.mama, self.midpoint,
-            self.midprice, self.sar, self.sma, self.t3, self.tema, self.trima, self.wma,
-            self.plusdi, self.minusdi, self.pmdi, self.adx, self.adx_pct, self.pmdi_aadx,
-            self.axdr, self.apo, self.aroonosc, self.ls_aroonosc, self.bop, self.cci,
-            self.ls_cci, self.cmo, self.ls_cmo, self.dx, self.macd, self.macd_ext,
-            self.macd_fix, self.mfi, self.ls_mfi, self.obs_mfi, self.mom, self.ls_mom,
-            self.ppo, self.roc, self.rsi, self.ls_rsi, self.obs_rsiv, self.stoch,
-            self.stochf, self.stochrsi, self.trix, self.ultosc, self.willr, self.ls_willr,
-            self.ad, self.adosc, self.obv, self.atr, self.ls_atr, self.natr, self.ls_natr,
-            self.trange, self.ht_dcperiod, self.ht_dcphase, self.ht_phasor, self.ht_sine
+            self.bband, 
+            self.dema, 
+            self.ema, 
+            self.ma, 
+            self.mama, 
+            self.midpoint,
+            self.midprice, 
+            self.sar, 
+            self.sma, 
+            self.t3, 
+            self.tema, 
+            # self.plusdi, 
+            self.minusdi, 
+            self.pmdi_aadx,
+            self.apo, 
+            self.aroonosc, 
+            # self.ls_aroonosc, 
+            self.bop, 
+            self.cci,
+            self.ls_cci, 
+            self.cmo, 
+            self.ls_cmo, 
+            self.macd, 
+            self.macd_ext,
+            self.macd_fix, 
+            # self.mfi, 
+            self.ls_mfi, 
+            # self.obs_mfi, 
+            self.ls_mom,
+            self.ppo, 
+            self.roc, 
+            self.rsi, 
+            self.ls_rsi, 
+            self.obs_rsiv, 
+            self.stoch,
+            self.stochf, 
+            self.stochrsi, 
+            self.trix, 
+            self.ultosc, 
+            self.willr, 
+            self.ls_willr,
+            self.adosc, 
+            self.atr, 
+            self.ls_atr, 
+            self.natr, 
+            self.ls_natr,
+            # self.trange, 
+            self.ht_phasor
         ]
 
     
@@ -104,8 +144,8 @@ class talibCrypto(object):
     
     # 10. Simple Moving Average
     def sma(self):
-        sma1 = talib.SMA(df['close'], timeperiod=5)
-        sma2 = talib.SMA(df['close'], timeperiod=10)
+        sma1 = talib.SMA(self.df['close'], timeperiod=5)
+        sma2 = talib.SMA(self.df['close'], timeperiod=10)
         real = sma2 - sma1
         real.name = 'SMA'
         return real
@@ -493,7 +533,7 @@ class talibCrypto(object):
     """
     # 59. Hilbert Transform - Dominant Cycle Period
     def ht_dcperiod(self):
-        ht_dcperiod = talib.HT_DCPERIOD(self.df['close'])
+        real = talib.HT_DCPERIOD(self.df['close'])
         real.name = 'HT_DCPERIOD'
         return real
     
@@ -517,3 +557,8 @@ class talibCrypto(object):
         real.name = 'HT_SINE'
         return real
 
+    """
+    Consolidation
+    """
+    def getTaFactors(self):
+        pass
