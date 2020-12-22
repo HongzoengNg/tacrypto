@@ -16,7 +16,7 @@ import threading
 
 class talibCrypto(object):
     def __init__(self, minute_datalibframe):
-        self.df_cols = ['open', 'high', 'low', 'close', 'volume', 'time', 'avg_price']
+        self.df_cols = ['open', 'high', 'low', 'close', 'volume', 'vwap']
         self.df = minute_datalibframe
         self.talib_function = [
             self.bband, 
@@ -76,7 +76,7 @@ class talibCrypto(object):
     # 1. Bollinger Bands
     def bband(self):
         upperband, middleband, lowerband = talib.BBANDS(self.df['close'], timeperiod=50, nbdevup=10, nbdevdn=10, matype=7)
-        real = (upperband - self.df['avg_price']) / (self.df['avg_price'] - lowerband)
+        real = (upperband - self.df['vwap']) / (self.df['vwap'] - lowerband)
         real.name = 'BBAND'
         return real
     
