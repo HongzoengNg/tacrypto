@@ -529,6 +529,11 @@ class FactorsAnalyzer(object):
         ic_ratio = (correct / total_no_samples) * 2 - 1
         return dict(ic_ratio)
 
+    def single_factor_optimisation(self,alhpa):
+        pass
+    def cases_to_try(self,params):
+        pass
+
 if __name__ == '__main__':
     # -- import data --
 
