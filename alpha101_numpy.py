@@ -45,7 +45,7 @@ class Alpha101_numpy(object):
         self.optimised_params['alpha_023'] = {'d_1': 50, 'c_1': 70, 'd_2': 10, 'c_2': 0.001}
         self.optimised_params['alpha_024'] = {'d_1'1:,'c_1':0.1,'d_2':10}
         self.optimised_params['alpha_026'] = {'d_1': 5, 'd_2': 120}
-        # self.optimised_params['alpha_035'] = {'d_1':,'d_2':,'d_3':}
+        self.optimised_params['alpha_035'] = {'d_1': 90, 'd_2': 10, 'd_3': 70}
         self.optimised_params['alpha_041'] = {'c_1':0.5}
         self.optimised_params['alpha_043'] = {'d_1':3,'d_2':90,'d_3':70}
         # self.optimised_params['alpha_046'] = {'d_1':,'d_2':,'d_3':,'c_1':,'c_2':,'c_3':,'c_4':,'c_5':}
