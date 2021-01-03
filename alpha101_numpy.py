@@ -19,6 +19,7 @@ class Alpha101_numpy(object):
 
         self.initialization()
         self.default_params = {}
+        self.optimised_params = {}
         self.default_params['alpha_006'] = {'d_1':10}
         self.default_params['alpha_007'] = {'d_1':20,'d_2':7,'d_3':60,'d_4':7,'c_1':1}
         self.default_params['alpha_009'] = {'c_1' : 0,'d_1':1,'d_2':5,'d_3':1}
@@ -36,6 +37,24 @@ class Alpha101_numpy(object):
         self.default_params['alpha_054'] = {'c_1':5}
         self.default_params['alpha_084'] = {'d_1':15,'d_2':21,'d_3':5}
         self.default_params['alpha_101'] = {'c_1':0.001}
+
+        self.optimised_params['alpha_006'] = {'d_1':90}
+        # self.optimised_params['alpha_007'] = {'d_1':,'d_2':,'d_3':,'d_4':,'c_1':}
+        self.optimised_params['alpha_009'] = {'c_1': 0.1, 'd_1': 10, 'd_2': 70, 'd_3': 70}
+        self.optimised_params['alpha_012'] = {'d_1'1:,'d_2':70}
+        self.optimised_params['alpha_023'] = {'d_1': 50, 'c_1': 70, 'd_2': 10, 'c_2': 0.001}
+        self.optimised_params['alpha_024'] = {'d_1'1:,'c_1':0.1,'d_2':10}
+        self.optimised_params['alpha_026'] = {'d_1': 5, 'd_2': 120}
+        # self.optimised_params['alpha_035'] = {'d_1':,'d_2':,'d_3':}
+        self.optimised_params['alpha_041'] = {'c_1':0.5}
+        self.optimised_params['alpha_043'] = {'d_1':3,'d_2':90,'d_3':70}
+        # self.optimised_params['alpha_046'] = {'d_1':,'d_2':,'d_3':,'c_1':,'c_2':,'c_3':,'c_4':,'c_5':}
+        self.optimised_params['alpha_049'] = {'d_1': 70, 'd_2': 30, 'd_3': 70, 'c_1': 0.7, 'c_2': 10, 'd_4': 3}
+        self.optimised_params['alpha_051'] = {'d_1': 90, 'd_2': 70, 'd_3': 90, 'c_1': 0.9, 'c_2': 1, 'd_4': 5}
+        self.optimised_params['alpha_053'] = {'d_1':20}
+        self.optimised_params['alpha_054'] = {'c_1':5}
+        self.optimised_params['alpha_084'] = {'d_1':1,'d_2':5,'d_3':50}
+        self.optimised_params['alpha_101'] = {'c_1':0.001}
 
     def input_data(self,data):
         """
@@ -66,7 +85,9 @@ class Alpha101_numpy(object):
         return x/x_sum
 
     def delta(self,x,d):
-        return pd.Series(x).diff(d).values
+        x1 = np.roll(x,d)
+        x1[:d]=np.nan
+        return x-x1
 
     def signedpower(self,x,a):
         return np.power(x,a)
@@ -78,14 +99,27 @@ class Alpha101_numpy(object):
         return np.average(x[-d:],weights=weight)
 
     def delay(self,x,d):
-        return pd.Series(x).shift(d).values
+        x = np.roll(x,d)
+        x[:d]=np.nan
+        return x
 
-    def to_rank(self,x):
+    def to_rank_ss(self,x):
         # result[i] is the rank of x[i] in x
         return np.sum(np.less(x, x.iat[-1]))
 
     def ts_rank(self,x,d):
-        return d - pd.Series(x).rolling(d).apply(self.to_rank).values
+        #def to_rank(x):
+        #    return np.sum(np.less(x.values,x.values[-1]))
+        #return pd.Series(x).rolling(d).apply(to_rank).values/d
+        def rolling_window(a, d):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - d + 1, d)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(x,d)
+        na = np.empty((d-1))
+        na[:] = np.nan
+        return np.concatenate((na,np.sum(np.less(x,x[:,-1].reshape(-1,1)),axis=1) / d))
 
     def ts_max(self,x,d):
         return pd.Series(x).rolling(d).max().values
@@ -370,6 +404,32 @@ class Alpha101_numpy(object):
             val = func(params)
         return val
 
+# ------------ parameters optimisation and analysis -----------------
+
+    def initialization(self):
+        internal_methods = dir(self)
+        alpha_list = []
+        for method in internal_methods:
+            if 'alpha' in method and 'list' not in method:
+                alpha_list.append(method)
+        self.alpha_list = alpha_list
+
+    def compute_all(self):
+        alpha_values = []
+        for alpha in self.optimised_params.keys():
+            func = getattr(self, alpha)
+            val = func()
+            alpha_values.append(val)
+        return alpha_values
+
+    def compute_single_alpha(self,alpha,params = None):
+        func = getattr(self, alpha)
+        if params is None:
+            val = func()
+        else:
+            val = func(params)
+        return val
+
 
 class FactorsAnalyzer_numpy(object):
     def __init__(self,alpha101):
@@ -378,6 +438,7 @@ class FactorsAnalyzer_numpy(object):
         self.data = None
         self.resampled_data = None
         self.alpha_list = None
+        self.pre_data_analysis = None
         self.resample_dict = {
             'Open': 'first',
             'High': 'max',
@@ -396,6 +457,16 @@ class FactorsAnalyzer_numpy(object):
         data_hour = self.data.resample(freq).agg(self.resample_dict)
         data_hour['VWAP'] = data_hour['Turnover']/data_hour['Volume']
         self.resampled_data = data_hour
+        self.pre_optimization_initialization()
+    def pre_optimization_initialization(self):
+        data_analysis = self.resampled_data
+        data_analysis['t_1'] =data_analysis['Close'].shift(-1)/data_analysis['Close']-1
+        data_analysis['t_2'] =data_analysis['Close'].shift(-2)/data_analysis['Close']-1
+        data_analysis['t_3'] =data_analysis['Close'].shift(-3)/data_analysis['Close']-1
+        data_analysis['t_4'] =data_analysis['Close'].shift(-4)/data_analysis['Close']-1
+        data_analysis['t_5'] =data_analysis['Close'].shift(-5)/data_analysis['Close']-1
+        data_analysis['t_6'] =data_analysis['Close'].shift(-6)/data_analysis['Close']-1
+        self.pre_data_analysis = data_analysis
 
     def initialization(self):
         self.alphaModel.input_data(self.resampled_data)
@@ -532,6 +603,10 @@ class FactorsAnalyzer_numpy(object):
         df = returns.join(alpha)
         return dict(df.corr()[alpha.name])
 
+    def information_correlation_df(self,alpha,returns):
+        df = returns.join(alpha)
+        return df.corr()[alpha.columns].loc[returns.columns].transpose()
+
     def cases_to_be_tried(self,params):
         d = [1,3,5,10,20,30,50,70,90,120]
         c_0 = [0.001,0.005,0.01,0.025,0.05,0.075,0.1]
@@ -551,20 +626,20 @@ class FactorsAnalyzer_numpy(object):
         combination = [p for p in itertools.product(*param_list)]
         return combination
 
-    def signle_factor_optimizer(self,alpha_name):
+    def signle_factor_optimizer_testing(self,alpha_name):
         params = self.default_params[alpha_name]
         combinations = self.cases_to_be_tried(params)
         keys = list(params.keys())
         optimized_data = []
-        done_case = 0
+        # done_case = 0
         cases_number = len(combinations)
-        for comb in combinations:
-            print(done_case/cases_number)
+        for comb in combinations[:1]:
+            # print(done_case/cases_number)
             new_params = dict(zip(keys, comb))
             information_coefficient_dict, information_correlation_dict = self._optimizer(alpha_name,new_params)
             optimized_data.append([new_params,information_coefficient_dict, information_correlation_dict])
 
-            done_case += 1
+            # done_case += 1
 
         idx = 0
         final_df = pd.DataFrame()
@@ -584,6 +659,98 @@ class FactorsAnalyzer_numpy(object):
             idx +=1
         return final_df
 
+    def signle_factor_optimizer(self,alpha_name):
+        params = self.default_params[alpha_name]
+        combinations = self.cases_to_be_tried(params)
+        keys = list(params.keys())
+        optimized_data = []
+        # done_case = 0
+        cases_number = len(combinations)
+        for comb in combinations[:200]:
+            # print(done_case/cases_number)
+            new_params = dict(zip(keys, comb))
+            information_coefficient_dict, information_correlation_dict = self._optimizer(alpha_name,new_params)
+            optimized_data.append([new_params,information_coefficient_dict, information_correlation_dict])
+
+            # done_case += 1
+
+        idx = 0
+        final_df = pd.DataFrame()
+        for data in optimized_data:
+            params = data[0]
+            coeff = data[1]
+            correl = data[2]
+            coeff_df = pd.DataFrame(coeff,index=[idx])[['t_1','t_2','t_3','t_4','t_5','t_6']]
+            coeff_df.columns = ['coeff t_1','coeff t_2','coeff t_3','coeff t_4','coeff t_5','coeff t_6']
+            coeff_df['coeff max'] = np.nanmax(np.abs(coeff_df))
+            correl_df = pd.DataFrame(correl,index=[idx])[['t_1','t_2','t_3','t_4','t_5','t_6']]
+            correl_df.columns = ['correl t_1','correl t_2','correl t_3','correl t_4','correl t_5','correl t_6']
+            correl_df['correl max'] = np.nanmax(np.abs(correl_df))
+            params_df = pd.DataFrame([[params]],index=[idx],columns=['params'])
+            temp_df = pd.concat([params_df,coeff_df,correl_df],axis=1)
+            final_df = pd.concat([final_df,temp_df],axis=0)
+            idx +=1
+        return final_df
+
+    def signle_factor_optimizer_v2(self,alpha_name):
+        params = self.default_params[alpha_name]
+        combinations = self.cases_to_be_tried(params)
+        keys = list(params.keys())
+        optimized_data = []
+        # done_case = 0
+        cases_number = len(combinations)
+        combinations_list = []
+        #start_time = time.time()
+        for comb in combinations:
+            # print(done_case/cases_number)
+            new_params = dict(zip(keys, comb))
+            combinations_list.append(new_params)
+        #print('comb takes %s'%(time.time()-start_time))
+        information_correlation_df= self._optimizer_v2(alpha_name,combinations_list)
+        return information_correlation_df
+#         idx = 0
+#         final_df = pd.DataFrame()
+#         for data in optimized_data:
+#             params = data[0]
+#             correl = data[1]
+#             correl_df = pd.DataFrame(correl,index=[idx])[['t_1','t_2','t_3','t_4','t_5','t_6']]
+#             correl_df.columns = ['correl t_1','correl t_2','correl t_3','correl t_4','correl t_5','correl t_6']
+#             correl_df['correl max'] = np.nanmax(np.abs(correl_df))
+#             params_df = pd.DataFrame([[params]],index=[idx],columns=['params'])
+#             temp_df = pd.concat([params_df,correl_df],axis=1)
+#             final_df = pd.concat([final_df,temp_df],axis=0)
+#             idx +=1
+#         return final_df
+    def _optimizer_v2(self,alpha_name,params):
+        data_length = len(self.resampled_data.index)
+
+        slice_data = self.resampled_data
+        date = slice_data.index[-1]
+        self.alphaModel.input_data(slice_data)
+        temp_alpha_data = {}
+        temp_param_data = {}
+        idx = 0
+        for param in params:
+            alpha_val = self.alphaModel.compute_single_alpha(alpha_name,param)
+            temp_alpha_data[idx] = alpha_val
+            temp_param_data[idx] = param
+            idx +=1
+        alpha_df = pd.DataFrame.from_dict(temp_alpha_data)
+        alpha_df.index = slice_data.index
+        self.alpha_list = self.alphaModel.alpha_list
+        df = self.pre_data_analysis.copy().join(alpha_df)
+        columns_list = ['t_1','t_2','t_3','t_4','t_5','t_6']
+        columns_selected = list(alpha_df.columns)+ columns_list
+        df_alpha = df[columns_selected].copy()
+        df_alpha.dropna(inplace=True)
+
+        alpha = df_alpha[alpha_df.columns]
+        returns = df_alpha[columns_list]
+        information_correlation_df = self.information_correlation_df(alpha,returns)
+        param_df  = pd.DataFrame.from_dict(temp_param_data,orient='index')
+        # print(param_df)
+        # param_df.columns = ['params']
+        return information_correlation_df.join(param_df)
     def _optimizer(self,alpha_name,params):
         data_length = len(self.resampled_data.index)
         alpha_data = {}
@@ -637,9 +804,9 @@ if __name__ == '__main__':
     for alpha in params.keys():
         if len(params[alpha])<5:
             alpha_list_opt.append(alpha)
-            
+
     optimized_data_dict = {}
-    for alpha in alpha_list_opt[7:]:
+    for alpha in alpha_list_opt:
         optimized_data_dict[alpha] = FA_numpy.signle_factor_optimizer(alpha)
         print(alpha + ' Done~!!!')
         optimized_data_dict[alpha].to_excel(alpha+'.xlsx')
