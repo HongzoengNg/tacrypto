@@ -19,7 +19,7 @@ class Alpha101_numpy(object):
 
         self.initialization()
         self.default_params = {}
-        self.optimised_params = {}
+        self.optimized_params = {}
         self.default_params['alpha_006'] = {'d_1':10}
         self.default_params['alpha_007'] = {'d_1':20,'d_2':7,'d_3':60,'d_4':7,'c_1':1}
         self.default_params['alpha_009'] = {'c_1' : 0,'d_1':1,'d_2':5,'d_3':1}
@@ -38,39 +38,95 @@ class Alpha101_numpy(object):
         self.default_params['alpha_084'] = {'d_1':15,'d_2':21,'d_3':5}
         self.default_params['alpha_101'] = {'c_1':0.001}
 
-        self.optimised_params['alpha_006'] = {'d_1':90}
-        # self.optimised_params['alpha_007'] = {'d_1':,'d_2':,'d_3':,'d_4':,'c_1':}
-        self.optimised_params['alpha_009'] = {'c_1': 0.1, 'd_1': 10, 'd_2': 70, 'd_3': 70}
-        self.optimised_params['alpha_012'] = {'d_1'1:,'d_2':70}
-        self.optimised_params['alpha_023'] = {'d_1': 50, 'c_1': 70, 'd_2': 10, 'c_2': 0.001}
-        self.optimised_params['alpha_024'] = {'d_1'1:,'c_1':0.1,'d_2':10}
-        self.optimised_params['alpha_026'] = {'d_1': 5, 'd_2': 120}
-        self.optimised_params['alpha_035'] = {'d_1': 90, 'd_2': 10, 'd_3': 70}
-        self.optimised_params['alpha_041'] = {'c_1':0.5}
-        self.optimised_params['alpha_043'] = {'d_1':3,'d_2':90,'d_3':70}
-        # self.optimised_params['alpha_046'] = {'d_1':,'d_2':,'d_3':,'c_1':,'c_2':,'c_3':,'c_4':,'c_5':}
-        self.optimised_params['alpha_049'] = {'d_1': 70, 'd_2': 30, 'd_3': 70, 'c_1': 0.7, 'c_2': 10, 'd_4': 3}
-        self.optimised_params['alpha_051'] = {'d_1': 90, 'd_2': 70, 'd_3': 90, 'c_1': 0.9, 'c_2': 1, 'd_4': 5}
-        self.optimised_params['alpha_053'] = {'d_1':20}
-        self.optimised_params['alpha_054'] = {'c_1':5}
-        self.optimised_params['alpha_084'] = {'d_1':1,'d_2':5,'d_3':50}
-        self.optimised_params['alpha_101'] = {'c_1':0.001}
+        self.optimized_params['alpha_006'] = {'d_1':120} # 0.009
+        # self.optimized_params['alpha_007'] = {'d_1':20,'d_2':7,'d_3':60,'d_4':7,'c_1':1}
+        # self.optimized_params['alpha_009'] = {'c_1' : 0,'d_1':1,'d_2':5,'d_3':1}
+        self.optimized_params['alpha_012'] = {'d_1':30,'d_2':50} # 0.0209
+        # self.optimized_params['alpha_023'] = {'d_1':20,'c_1':20,'d_2':2,'c_2':0}
+        self.optimized_params['alpha_024'] = {'d_1':10,'c_1':1,'d_2':120} # -0.0343
+        self.optimized_params['alpha_026'] = {'d_1':5,'d_2':50} # 0.116
+        # self.optimized_params['alpha_035'] = {'d_1':32,'d_2':16,'d_3':32}
+        self.optimized_params['alpha_041'] = {'c_1':0.5} # -0.0196
+        # self.optimized_params['alpha_043'] = {'d_1':20,'d_2':7,'d_3':8}
+        # self.optimized_params['alpha_046'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.25,'c_2':1,'c_3':0,'c_4':1,'c_5':1}
+        # self.optimized_params['alpha_049'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.1,'c_2':1,'d_4':1}
+        # self.optimized_params['alpha_051'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.05,'c_2':1,'d_4':1}
+        self.optimized_params['alpha_053'] = {'d_1':9} # -0.0097
+        self.optimized_params['alpha_054'] = {'c_1':1} # -0.0196
+        # self.optimized_params['alpha_084'] = {'d_1':15,'d_2':21,'d_3':5}
+        self.optimized_params['alpha_101'] = {'c_1':0.1} #0.0254
+        self.default_params = self.optimized_params
 
-    def input_data(self,data):
+    def input_data(self,data,tf=5):
         """
         Data is dataframe object with Date, Open, High, Low, Close, Volume, Turnover, VWAP
 
         """
         self.data = data
-        self.open_price = data.Open.values
-        self.high_price = data.High.values
-        self.low_price = data.Low.values
-        self.close_price = data.Close.values
-        self.volume = data.Volume.values
-        self.delayed_close = self.delay(self.close_price,1)
+        self.open_price = self.first_value(data.Open.values,tf)
+        self.high_price = self.high_value(data.High.values,tf)
+        self.low_price = self.low_value(data.Low.values,tf)
+        self.close_price = self.last_value(self.data.Close.values,tf)
+        self.volume = self.sum_value(data.Volume.values,tf)
+        self.turnover = self.sum_value(data.Turnover.values,tf)
+        self.delayed_close = self.delay(self.close_price,tf)
         self.returns = self.close_price/self.delayed_close-1
-        self.vwap = data.VWAP.values
-        self.turnover = data.Turnover.values
+        self.vwap = self.turnover/self.volume
+
+
+    def first_value(self,a,window):
+        def rolling_window(a, window):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(a,window)
+        na = np.empty((window-1))
+        na[:] = np.nan
+        return np.concatenate((na,x[:,0]))
+
+    def last_value(self,a,window):
+        def rolling_window(a, window):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(a,window)
+        na = np.empty((window-1))
+        na[:] = np.nan
+        return np.concatenate((na,x[:,-1]))
+
+    def high_value(self,a,window):
+        def rolling_window(a, window):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(a,window)
+        na = np.empty((window-1))
+        na[:] = np.nan
+        return np.concatenate((na,np.max(x,axis=1)))
+
+    def low_value(self,a,window):
+        def rolling_window(a, window):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(a,window)
+        na = np.empty((window-1))
+        na[:] = np.nan
+        return np.concatenate((na,np.min(x,axis=1)))
+    def sum_value(self,a,window):
+        def rolling_window(a, window):
+            # 1d array rolling
+            shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
+            strides = a.strides + (a.strides[-1],)
+            return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+        x = rolling_window(a,window)
+        na = np.empty((window-1))
+        na[:] = np.nan
+        return np.concatenate((na,np.sum(x,axis=1)))
 
     def correlation(self,x,y,d):
         return pd.Series(x).rolling(d).corr(pd.Series(y)).values
@@ -390,7 +446,7 @@ class Alpha101_numpy(object):
 
     def compute_all(self):
         alpha_values = []
-        for alpha in self.alpha_list:
+        for alpha in self.default_params.keys():
             func = getattr(self, alpha)
             val = func()
             alpha_values.append(val)
@@ -404,31 +460,6 @@ class Alpha101_numpy(object):
             val = func(params)
         return val
 
-# ------------ parameters optimisation and analysis -----------------
-
-    def initialization(self):
-        internal_methods = dir(self)
-        alpha_list = []
-        for method in internal_methods:
-            if 'alpha' in method and 'list' not in method:
-                alpha_list.append(method)
-        self.alpha_list = alpha_list
-
-    def compute_all(self):
-        alpha_values = []
-        for alpha in self.optimised_params.keys():
-            func = getattr(self, alpha)
-            val = func()
-            alpha_values.append(val)
-        return alpha_values
-
-    def compute_single_alpha(self,alpha,params = None):
-        func = getattr(self, alpha)
-        if params is None:
-            val = func()
-        else:
-            val = func(params)
-        return val
 
 
 class FactorsAnalyzer_numpy(object):
@@ -454,18 +485,13 @@ class FactorsAnalyzer_numpy(object):
         self.resampling(freq)
 
     def resampling(self,freq = '60min'):
-        data_hour = self.data.resample(freq).agg(self.resample_dict)
-        data_hour['VWAP'] = data_hour['Turnover']/data_hour['Volume']
+        data_hour = self.data# .resample(freq).agg(self.resample_dict)
+        # data_hour['VWAP'] = data_hour['Turnover']/data_hour['Volume']
         self.resampled_data = data_hour
         self.pre_optimization_initialization()
     def pre_optimization_initialization(self):
         data_analysis = self.resampled_data
-        data_analysis['t_1'] =data_analysis['Close'].shift(-1)/data_analysis['Close']-1
-        data_analysis['t_2'] =data_analysis['Close'].shift(-2)/data_analysis['Close']-1
-        data_analysis['t_3'] =data_analysis['Close'].shift(-3)/data_analysis['Close']-1
-        data_analysis['t_4'] =data_analysis['Close'].shift(-4)/data_analysis['Close']-1
-        data_analysis['t_5'] =data_analysis['Close'].shift(-5)/data_analysis['Close']-1
-        data_analysis['t_6'] =data_analysis['Close'].shift(-6)/data_analysis['Close']-1
+        data_analysis['t_1'] =data_analysis['Close'].shift(-1)/data_analysis['Close'].shift(-6)-1
         self.pre_data_analysis = data_analysis
 
     def initialization(self):
@@ -493,7 +519,8 @@ class FactorsAnalyzer_numpy(object):
         self.alpha_data = df
 
     def analysis(self):
-        columns_list = ['t_1','t_2','t_3','t_4','t_5','t_6']
+        # columns_list = ['t_1','t_2','t_3','t_4','t_5','t_6']
+        columns_list = ['t_1']
         for alpha in self.alpha_list:
             alpha_name = [alpha]
             columns_selected = alpha_name + columns_list
@@ -512,6 +539,7 @@ class FactorsAnalyzer_numpy(object):
             self.out_samples_plot(df_alpha_out_sample[alpha],df_alpha_out_sample[columns_list])
             self.out_samples_plot(df_alpha_out_sample[alpha],df_alpha_out_sample[columns_list],mean_value)
             plt.show()
+
     def in_samples_plot(self,alpha,returns):
         alphaname = alpha.name
         information_correlation_dict = self.information_correlation(alpha,returns)
@@ -525,29 +553,10 @@ class FactorsAnalyzer_numpy(object):
         f2_ax5 = fig2.add_subplot(spec2[0, 4])
         f2_ax6 = fig2.add_subplot(spec2[0, 5])
         f2_ax1.scatter(alpha,returns['t_1'],c='g')
-        f2_ax2.scatter(alpha,returns['t_2'],c='g')
-        f2_ax3.scatter(alpha,returns['t_3'],c='g')
-        f2_ax4.scatter(alpha,returns['t_4'],c='g')
-        f2_ax5.scatter(alpha,returns['t_5'],c='g')
-        f2_ax6.scatter(alpha,returns['t_6'],c='g')
         f2_ax1.set_title(alphaname+' t+1 in-sample IC:%.3f'%information_coefficient_dict['t_1'])
-        f2_ax2.set_title(alphaname+' t+2 in-sample IC:%.3f'%information_coefficient_dict['t_2'])
-        f2_ax3.set_title(alphaname+' t+3 in-sample IC:%.3f'%information_coefficient_dict['t_3'])
-        f2_ax4.set_title(alphaname+' t+4 in-sample IC:%.3f'%information_coefficient_dict['t_4'])
-        f2_ax5.set_title(alphaname+' t+5 in-sample IC:%.3f'%information_coefficient_dict['t_5'])
-        f2_ax6.set_title(alphaname+' t+6 in-sample IC:%.3f'%information_coefficient_dict['t_6'])
         f2_ax1.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_1']))
-        f2_ax2.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_2']))
-        f2_ax3.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_3']))
-        f2_ax4.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_4']))
-        f2_ax5.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_5']))
-        f2_ax6.set_xlabel(alphaname+' corr:%.3f' %(information_correlation_dict['t_6']))
         f2_ax1.set_ylabel('t+1 return')
-        f2_ax2.set_ylabel('t+2 return')
-        f2_ax3.set_ylabel('t+3 return')
-        f2_ax4.set_ylabel('t+4 return')
-        f2_ax5.set_ylabel('t+5 return')
-        f2_ax6.set_ylabel('t+6 return')
+
 
 
     def out_samples_plot(self,alpha,returns,mean_value=0):
@@ -564,29 +573,9 @@ class FactorsAnalyzer_numpy(object):
         f2_ax5 = fig2.add_subplot(spec2[0, 4])
         f2_ax6 = fig2.add_subplot(spec2[0, 5])
         f2_ax1.scatter(alpha,returns['t_1'])
-        f2_ax2.scatter(alpha,returns['t_2'])
-        f2_ax3.scatter(alpha,returns['t_3'])
-        f2_ax4.scatter(alpha,returns['t_4'])
-        f2_ax5.scatter(alpha,returns['t_5'])
-        f2_ax6.scatter(alpha,returns['t_6'])
         f2_ax1.set_title(alphaname+' t+1 out-sample IC:%.3f'%information_coefficient_dict['t_1'])
-        f2_ax2.set_title(alphaname+' t+2 out-sample IC:%.3f'%information_coefficient_dict['t_2'])
-        f2_ax3.set_title(alphaname+' t+3 out-sample IC:%.3f'%information_coefficient_dict['t_3'])
-        f2_ax4.set_title(alphaname+' t+4 out-sample IC:%.3f'%information_coefficient_dict['t_4'])
-        f2_ax5.set_title(alphaname+' t+5 out-sample IC:%.3f'%information_coefficient_dict['t_5'])
-        f2_ax6.set_title(alphaname+' t+5 out-sample IC:%.3f'%information_coefficient_dict['t_6'])
         f2_ax1.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_1']))
-        f2_ax2.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_2']))
-        f2_ax3.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_3']))
-        f2_ax4.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_4']))
-        f2_ax5.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_5']))
-        f2_ax6.set_xlabel(alphaname+' %.3f corr:%.3f' %(mean_value,information_correlation_dict['t_6']))
         f2_ax1.set_ylabel('t+1 return')
-        f2_ax2.set_ylabel('t+2 return')
-        f2_ax3.set_ylabel('t+3 return')
-        f2_ax4.set_ylabel('t+4 return')
-        f2_ax5.set_ylabel('t+5 return')
-        f2_ax6.set_ylabel('t+6 return')
 
 
     def information_coefficient(self,alpha,returns):
@@ -608,7 +597,7 @@ class FactorsAnalyzer_numpy(object):
         return df.corr()[alpha.columns].loc[returns.columns].transpose()
 
     def cases_to_be_tried(self,params):
-        d = [1,3,5,10,20,30,50,70,90,120]
+        d = list(np.array([1,3,5,10,20,30,50,70,90,120]))
         c_0 = [0.001,0.005,0.01,0.025,0.05,0.075,0.1]
         c_1 = [0.075,0.1,0.2,0.5,0.7,0.9,1]
         c_2 = [1,3,5,10,20,30,50,70,90,120]
@@ -697,30 +686,14 @@ class FactorsAnalyzer_numpy(object):
         combinations = self.cases_to_be_tried(params)
         keys = list(params.keys())
         optimized_data = []
-        # done_case = 0
         cases_number = len(combinations)
         combinations_list = []
-        #start_time = time.time()
         for comb in combinations:
-            # print(done_case/cases_number)
             new_params = dict(zip(keys, comb))
             combinations_list.append(new_params)
-        #print('comb takes %s'%(time.time()-start_time))
         information_correlation_df= self._optimizer_v2(alpha_name,combinations_list)
         return information_correlation_df
-#         idx = 0
-#         final_df = pd.DataFrame()
-#         for data in optimized_data:
-#             params = data[0]
-#             correl = data[1]
-#             correl_df = pd.DataFrame(correl,index=[idx])[['t_1','t_2','t_3','t_4','t_5','t_6']]
-#             correl_df.columns = ['correl t_1','correl t_2','correl t_3','correl t_4','correl t_5','correl t_6']
-#             correl_df['correl max'] = np.nanmax(np.abs(correl_df))
-#             params_df = pd.DataFrame([[params]],index=[idx],columns=['params'])
-#             temp_df = pd.concat([params_df,correl_df],axis=1)
-#             final_df = pd.concat([final_df,temp_df],axis=0)
-#             idx +=1
-#         return final_df
+
     def _optimizer_v2(self,alpha_name,params):
         data_length = len(self.resampled_data.index)
 
@@ -735,22 +708,33 @@ class FactorsAnalyzer_numpy(object):
             temp_alpha_data[idx] = alpha_val
             temp_param_data[idx] = param
             idx +=1
+        #print(temp_alpha_data)
         alpha_df = pd.DataFrame.from_dict(temp_alpha_data)
         alpha_df.index = slice_data.index
+        # print(alpha_df)
+        # alpha_df.to_csv('alpha54data.csv')
         self.alpha_list = self.alphaModel.alpha_list
         df = self.pre_data_analysis.copy().join(alpha_df)
-        columns_list = ['t_1','t_2','t_3','t_4','t_5','t_6']
+        columns_list = ['t_1']#,'t_2','t_3','t_4','t_5','t_6']
         columns_selected = list(alpha_df.columns)+ columns_list
         df_alpha = df[columns_selected].copy()
-        df_alpha.dropna(inplace=True)
 
+        # df_alpha.dropna(inplace=True)
+        # df_alpha.to_csv('alpha26data2.csv')
+        # alpha = df_alpha[alpha_df.columns]
+#         returns = df_alpha[columns_list]
+#         ic_dict = {}
+#         for alpha_case in alpha_df.columns:
+#             alpha = df_alpha[alpha_case]
+#             temp_dict = self.information_correlation_df(alpha,returns)
+#             ic_dict = {**ic_dict,**temp_dict}
+#         information_correlation_df = ic_dict
         alpha = df_alpha[alpha_df.columns]
         returns = df_alpha[columns_list]
         information_correlation_df = self.information_correlation_df(alpha,returns)
         param_df  = pd.DataFrame.from_dict(temp_param_data,orient='index')
-        # print(param_df)
-        # param_df.columns = ['params']
         return information_correlation_df.join(param_df)
+
     def _optimizer(self,alpha_name,params):
         data_length = len(self.resampled_data.index)
         alpha_data = {}
