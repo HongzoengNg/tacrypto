@@ -44,18 +44,19 @@ class Alpha101_numpy(object):
         self.optimized_params['alpha_012'] = {'d_1':30,'d_2':50} # 0.0209
         # self.optimized_params['alpha_023'] = {'d_1':20,'c_1':20,'d_2':2,'c_2':0}
         self.optimized_params['alpha_024'] = {'d_1':10,'c_1':1,'d_2':120} # -0.0343
-        self.optimized_params['alpha_026'] = {'d_1':5,'d_2':50} # 0.116
-        # self.optimized_params['alpha_035'] = {'d_1':32,'d_2':16,'d_3':32}
+        self.optimized_params['alpha_026'] = {'d_1':3,'d_2':10} # -0.0154
+        self.optimized_params['alpha_035'] = {'d_1':120,'d_2':1,'d_3':1} #0.0127
         self.optimized_params['alpha_041'] = {'c_1':0.5} # -0.0196
-        # self.optimized_params['alpha_043'] = {'d_1':20,'d_2':7,'d_3':8}
+        self.optimized_params['alpha_043'] = {'d_1':120,'d_2':90,'d_3':120} # 0.01295
         # self.optimized_params['alpha_046'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.25,'c_2':1,'c_3':0,'c_4':1,'c_5':1}
         # self.optimized_params['alpha_049'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.1,'c_2':1,'d_4':1}
         # self.optimized_params['alpha_051'] = {'d_1':20,'d_2':10,'d_3':10,'c_1':0.05,'c_2':1,'d_4':1}
         self.optimized_params['alpha_053'] = {'d_1':9} # -0.0097
         self.optimized_params['alpha_054'] = {'c_1':1} # -0.0196
-        # self.optimized_params['alpha_084'] = {'d_1':15,'d_2':21,'d_3':5}
+        self.optimized_params['alpha_084'] = {'d_1':20,'d_2':3,'d_3':5} # -0.0439
         self.optimized_params['alpha_101'] = {'c_1':0.1} #0.0254
         self.default_params = self.optimized_params
+
 
     def input_data(self,data,tf=5):
         """
@@ -290,6 +291,7 @@ class Alpha101_numpy(object):
         d_1=params['d_1']
         d_2=params['d_2']
         a = self.correlation(self.ts_rank(self.volume,d_1),self.ts_rank(self.high_price,d_1),d_1)
+        a[np.isinf(a)] = 0
         b = self.ts_max(a,d_2)
         return -1*b
 
@@ -450,7 +452,9 @@ class Alpha101_numpy(object):
             func = getattr(self, alpha)
             val = func()
             alpha_values.append(val)
-        return alpha_values
+
+        df = pd.DataFrame(np.transpose(alpha_values),columns=self.optimized_params.keys())
+        return df
 
     def compute_single_alpha(self,alpha,params = None):
         func = getattr(self, alpha)
@@ -459,7 +463,6 @@ class Alpha101_numpy(object):
         else:
             val = func(params)
         return val
-
 
 
 class FactorsAnalyzer_numpy(object):
@@ -774,23 +777,29 @@ class FactorsAnalyzer_numpy(object):
 if __name__ == '__main__':
     # -- import data --
 
-    data = pd.read_csv("binance_swap_kline.BTCUSD.csv",index_col=5)
+    data = pd.read_csv("binance_swap_kline.BTCUSDT.csv",index_col=5)
     data.index = [datetime.datetime.fromtimestamp(int(ts)/1000) for ts in data.index]
     data.columns = ['Open','High','Low','Close','Volume']
     data['Turnover'] = data['Volume'] *data['Close']
 
+    # for factor computation
+    alpha_model = Alpha101_numpy()
+    alpha_model.input_data(test_data,5) #insert 1min data OHLC Volume and Turnover
+    alpha_data = alpha_model.compute_all()
+    print(alpha_data)
+
     # setup model
-    FA_numpy = FactorsAnalyzer_numpy(Alpha101_numpy)
-    FA_numpy.add_data(data,'15min')
+    #FA_numpy = FactorsAnalyzer_numpy(Alpha101_numpy)
+    #FA_numpy.add_data(data,'15min')
 
     # optimisation for params < 5
-    alpha_list_opt = []
-    for alpha in params.keys():
-        if len(params[alpha])<5:
-            alpha_list_opt.append(alpha)
+    #alpha_list_opt = []
+    #for alpha in params.keys():
+    #    if len(params[alpha])<5:
+    #        alpha_list_opt.append(alpha)
 
-    optimized_data_dict = {}
-    for alpha in alpha_list_opt:
-        optimized_data_dict[alpha] = FA_numpy.signle_factor_optimizer(alpha)
-        print(alpha + ' Done~!!!')
-        optimized_data_dict[alpha].to_excel(alpha+'.xlsx')
+    #optimized_data_dict = {}
+    #for alpha in alpha_list_opt:
+    #    optimized_data_dict[alpha] = FA_numpy.signle_factor_optimizer(alpha)
+    #    print(alpha + ' Done~!!!')
+    #    optimized_data_dict[alpha].to_excel(alpha+'.xlsx')
